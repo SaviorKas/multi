@@ -6,10 +6,15 @@ import numpy as np
 from typing import List, Tuple, Optional
 
 
+# Tolerance for considering two coordinates identical
+COORDINATE_TOLERANCE = 1e-10
+
+
 class QuadtreeNode:
     """Node in a Quadtree."""
     
-    def __init__(self, x_min: float, x_max: float, y_min: float, y_max: float, capacity: int = 50):
+    def __init__(self, x_min: float, x_max: float, y_min: float, y_max: float, 
+                 capacity: int = 50, depth: int = 0, max_depth: int = 25):
         """
         Initialize a Quadtree node.
         
@@ -19,12 +24,16 @@ class QuadtreeNode:
             y_min: Minimum y coordinate
             y_max: Maximum y coordinate
             capacity: Maximum number of points before splitting
+            depth: Current depth in the tree (0 = root)
+            max_depth: Maximum allowed depth to prevent infinite recursion
         """
         self.x_min = x_min
         self.x_max = x_max
         self.y_min = y_min
         self.y_max = y_max
         self.capacity = capacity
+        self.depth = depth
+        self.max_depth = max_depth
         
         self.points = []  # List of (x, y, index, full_data) tuples - now stores full 6D data
         self.is_divided = False
@@ -47,14 +56,33 @@ class QuadtreeNode:
     
     def subdivide(self):
         """Split this node into four quadrants."""
+        # Prevent infinite recursion - stop at max depth
+        # Points at max depth remain in this node even if over capacity
+        if self.depth >= self.max_depth:
+            return
+        
+        # Check if all points are at the same location
+        if len(self.points) > 1:
+            first_x, first_y = self.points[0][0], self.points[0][1]
+            all_same = all(abs(p[0] - first_x) < COORDINATE_TOLERANCE and 
+                          abs(p[1] - first_y) < COORDINATE_TOLERANCE 
+                          for p in self.points)
+            if all_same:
+                # Can't split identical points, keep them here
+                return
+        
         x_mid = (self.x_min + self.x_max) / 2
         y_mid = (self.y_min + self.y_max) / 2
         
-        # Create four children
-        self.nw = QuadtreeNode(self.x_min, x_mid, y_mid, self.y_max, self.capacity)
-        self.ne = QuadtreeNode(x_mid, self.x_max, y_mid, self.y_max, self.capacity)
-        self.sw = QuadtreeNode(self.x_min, x_mid, self.y_min, y_mid, self.capacity)
-        self.se = QuadtreeNode(x_mid, self.x_max, self.y_min, y_mid, self.capacity)
+        # Create four children with incremented depth
+        self.nw = QuadtreeNode(self.x_min, x_mid, y_mid, self.y_max, 
+                               self.capacity, self.depth + 1, self.max_depth)
+        self.ne = QuadtreeNode(x_mid, self.x_max, y_mid, self.y_max, 
+                               self.capacity, self.depth + 1, self.max_depth)
+        self.sw = QuadtreeNode(self.x_min, x_mid, self.y_min, y_mid, 
+                               self.capacity, self.depth + 1, self.max_depth)
+        self.se = QuadtreeNode(x_mid, self.x_max, self.y_min, y_mid, 
+                               self.capacity, self.depth + 1, self.max_depth)
         
         self.is_divided = True
         
@@ -93,20 +121,30 @@ class QuadtreeNode:
         Returns:
             True if insertion successful
         """
-        # Check if point is in bounds
         if not self.contains(x, y):
             return False
         
-        # If node has capacity and is not divided, add point
-        if not self.is_divided and len(self.points) < self.capacity:
-            self.points.append((x, y, index, full_data))
-            return True
-        
-        # If node is at capacity, subdivide
+        # If this node is not divided
         if not self.is_divided:
+            # If we have room, add the point
+            if len(self.points) < self.capacity:
+                self.points.append((x, y, index, full_data))
+                return True
+            
+            # If at max depth, just add it even if over capacity
+            if self.depth >= self.max_depth:
+                self.points.append((x, y, index, full_data))
+                return True
+            
+            # Otherwise, subdivide and redistribute
             self.subdivide()
+            
+            # If subdivision failed (all points identical), just add it
+            if not self.is_divided:
+                self.points.append((x, y, index, full_data))
+                return True
         
-        # Insert into appropriate child
+        # If divided, insert into appropriate child
         return self._insert_to_child((x, y, index, full_data))
     
     def query_range(self, x_min: float, x_max: float, 
@@ -164,7 +202,7 @@ class Quadtree:
     Quadtree for 2D spatial indexing.
     """
     
-    def __init__(self, x_dim: int = 0, y_dim: int = 1, capacity: int = 50):
+    def __init__(self, x_dim: int = 0, y_dim: int = 1, capacity: int = 50, max_depth: int = 25):
         """
         Initialize a Quadtree.
         
@@ -172,10 +210,12 @@ class Quadtree:
             x_dim: Index of dimension to use for x-axis
             y_dim: Index of dimension to use for y-axis
             capacity: Maximum points per node before splitting
+            max_depth: Maximum tree depth to prevent infinite recursion
         """
         self.x_dim = x_dim
         self.y_dim = y_dim
         self.capacity = capacity
+        self.max_depth = max_depth
         self.root = None
         self.size = 0
     
@@ -204,7 +244,7 @@ class Quadtree:
         
         self.root = QuadtreeNode(x_min - x_padding, x_max + x_padding,
                                 y_min - y_padding, y_max + y_padding,
-                                self.capacity)
+                                self.capacity, 0, self.max_depth)
         
         # Insert all points with full 6D data
         for i, idx in enumerate(indices):
