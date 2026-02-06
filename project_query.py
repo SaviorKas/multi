@@ -23,10 +23,17 @@ def display_spatial_results(df_filtered, n_top, tree_name):
     print(f"\nFirst {n_top} movies:")
     
     for i, (idx, row) in enumerate(df_filtered.head(n_top).iterrows()):
-        print(f"\n{i+1}. {row['title']} ({row['release_date'][:4] if pd.notna(row['release_date']) else 'N/A'})")
+        # Handle release_date which might be a string or Timestamp
+        release_year = 'N/A'
+        if pd.notna(row['release_date']):
+            release_date_str = str(row['release_date'])
+            if len(release_date_str) >= 4:
+                release_year = release_date_str[:4]
+        
+        print(f"\n{i+1}. {row['title']} ({release_year})")
         print(f"   Production Companies: {row['production_company_names']}")
         print(f"   Genres: {row['genre_names']}")
-        print(f"   Runtime: {row['runtime']} min")
+        print(f"   Runtime: {row['runtime']:.0f} min")
         print(f"   Popularity: {row['popularity']:.2f}")
         print(f"   Vote Average: {row['vote_average']:.2f}")
         print(f"   Country: {row['origin_country']}")
