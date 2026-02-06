@@ -6,6 +6,10 @@ import numpy as np
 from typing import List, Tuple, Optional
 
 
+# Tolerance for considering two coordinates identical
+COORDINATE_TOLERANCE = 1e-10
+
+
 class QuadtreeNode:
     """Node in a Quadtree."""
     
@@ -53,13 +57,15 @@ class QuadtreeNode:
     def subdivide(self):
         """Split this node into four quadrants."""
         # Prevent infinite recursion - stop at max depth
+        # Points at max depth remain in this node even if over capacity
         if self.depth >= self.max_depth:
             return
         
         # Check if all points are at the same location
         if len(self.points) > 1:
             first_x, first_y = self.points[0][0], self.points[0][1]
-            all_same = all(abs(p[0] - first_x) < 1e-10 and abs(p[1] - first_y) < 1e-10 
+            all_same = all(abs(p[0] - first_x) < COORDINATE_TOLERANCE and 
+                          abs(p[1] - first_y) < COORDINATE_TOLERANCE 
                           for p in self.points)
             if all_same:
                 # Can't split identical points, keep them here
