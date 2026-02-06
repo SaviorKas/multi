@@ -19,7 +19,7 @@ def query_kdtree_lsh(kdtree, data: np.ndarray, df: pd.DataFrame,
                      query_text: str,
                      metadata_filters: Optional[Dict] = None,
                      top_k: int = 10,
-                     num_perm: int = 128) -> Tuple[List[int], pd.DataFrame, float]:
+                     num_perm: int = 128) -> Tuple[List[int], pd.DataFrame, float, pd.DataFrame]:
     """
     Combined query using K-D Tree for spatial filtering and LSH for similarity.
     
@@ -35,7 +35,7 @@ def query_kdtree_lsh(kdtree, data: np.ndarray, df: pd.DataFrame,
         num_perm: Number of permutations for MinHash
         
     Returns:
-        Tuple of (result_indices, result_df, total_time)
+        Tuple of (result_indices, result_df, total_time, df_spatial_filtered)
     """
     import time
     start_time = time.time()
@@ -52,7 +52,7 @@ def query_kdtree_lsh(kdtree, data: np.ndarray, df: pd.DataFrame,
     spatial_results = kdtree.range_query(ranges)
     
     if not spatial_results:
-        return [], pd.DataFrame(), time.time() - start_time
+        return [], pd.DataFrame(), time.time() - start_time, pd.DataFrame()
     
     # Filter DataFrame by spatial results
     df_filtered = df.iloc[spatial_results].copy()
@@ -62,13 +62,16 @@ def query_kdtree_lsh(kdtree, data: np.ndarray, df: pd.DataFrame,
         df_filtered = filter_by_metadata(df_filtered, metadata_filters)
     
     if len(df_filtered) == 0:
-        return [], df_filtered, time.time() - start_time
+        return [], df_filtered, time.time() - start_time, df_filtered
+    
+    # Store spatial-only results for display
+    df_spatial_only = df_filtered.copy()
     
     # Phase 2: LSH similarity on filtered results
     lsh_index, minhash_dict, df_valid = create_lsh_index(df_filtered, text_attribute, num_perm, verbose=False)
     
     if len(df_valid) == 0:
-        return [], df_valid, time.time() - start_time
+        return [], df_valid, time.time() - start_time, df_spatial_only
     
     similar_results = query_similar(lsh_index, minhash_dict, df_valid, query_text, top_k, num_perm)
     
@@ -77,7 +80,7 @@ def query_kdtree_lsh(kdtree, data: np.ndarray, df: pd.DataFrame,
     result_df = df_valid.loc[result_indices].copy()
     
     total_time = time.time() - start_time
-    return result_indices, result_df, total_time
+    return result_indices, result_df, total_time, df_spatial_only
 
 
 def query_quadtree_lsh(quadtree, data: np.ndarray, df: pd.DataFrame,
@@ -86,7 +89,7 @@ def query_quadtree_lsh(quadtree, data: np.ndarray, df: pd.DataFrame,
                        query_text: str,
                        metadata_filters: Optional[Dict] = None,
                        top_k: int = 10,
-                       num_perm: int = 128) -> Tuple[List[int], pd.DataFrame, float]:
+                       num_perm: int = 128) -> Tuple[List[int], pd.DataFrame, float, pd.DataFrame]:
     """
     Combined query using Quadtree for spatial filtering and LSH for similarity.
     
@@ -104,7 +107,7 @@ def query_quadtree_lsh(quadtree, data: np.ndarray, df: pd.DataFrame,
         num_perm: Number of permutations for MinHash
         
     Returns:
-        Tuple of (result_indices, result_df, total_time)
+        Tuple of (result_indices, result_df, total_time, df_spatial_filtered)
     """
     import time
     start_time = time.time()
@@ -116,7 +119,7 @@ def query_quadtree_lsh(quadtree, data: np.ndarray, df: pd.DataFrame,
     spatial_results = quadtree.query_range(x_range, y_range)
     
     if not spatial_results:
-        return [], pd.DataFrame(), time.time() - start_time
+        return [], pd.DataFrame(), time.time() - start_time, pd.DataFrame()
     
     # Filter DataFrame by spatial results
     df_filtered = df.iloc[spatial_results].copy()
@@ -134,13 +137,16 @@ def query_quadtree_lsh(quadtree, data: np.ndarray, df: pd.DataFrame,
         df_filtered = filter_by_metadata(df_filtered, metadata_filters)
     
     if len(df_filtered) == 0:
-        return [], df_filtered, time.time() - start_time
+        return [], df_filtered, time.time() - start_time, df_filtered
+    
+    # Store spatial-only results for display
+    df_spatial_only = df_filtered.copy()
     
     # Phase 2: LSH similarity on filtered results
     lsh_index, minhash_dict, df_valid = create_lsh_index(df_filtered, text_attribute, num_perm, verbose=False)
     
     if len(df_valid) == 0:
-        return [], df_valid, time.time() - start_time
+        return [], df_valid, time.time() - start_time, df_spatial_only
     
     similar_results = query_similar(lsh_index, minhash_dict, df_valid, query_text, top_k, num_perm)
     
@@ -149,7 +155,7 @@ def query_quadtree_lsh(quadtree, data: np.ndarray, df: pd.DataFrame,
     result_df = df_valid.loc[result_indices].copy()
     
     total_time = time.time() - start_time
-    return result_indices, result_df, total_time
+    return result_indices, result_df, total_time, df_spatial_only
 
 
 def query_rangetree_lsh(range_tree, data: np.ndarray, df: pd.DataFrame,
@@ -158,7 +164,7 @@ def query_rangetree_lsh(range_tree, data: np.ndarray, df: pd.DataFrame,
                         query_text: str,
                         metadata_filters: Optional[Dict] = None,
                         top_k: int = 10,
-                        num_perm: int = 128) -> Tuple[List[int], pd.DataFrame, float]:
+                        num_perm: int = 128) -> Tuple[List[int], pd.DataFrame, float, pd.DataFrame]:
     """
     Combined query using Range Tree for spatial filtering and LSH for similarity.
     
@@ -174,7 +180,7 @@ def query_rangetree_lsh(range_tree, data: np.ndarray, df: pd.DataFrame,
         num_perm: Number of permutations for MinHash
         
     Returns:
-        Tuple of (result_indices, result_df, total_time)
+        Tuple of (result_indices, result_df, total_time, df_spatial_filtered)
     """
     import time
     start_time = time.time()
@@ -191,7 +197,7 @@ def query_rangetree_lsh(range_tree, data: np.ndarray, df: pd.DataFrame,
     spatial_results = range_tree.range_query(ranges)
     
     if not spatial_results:
-        return [], pd.DataFrame(), time.time() - start_time
+        return [], pd.DataFrame(), time.time() - start_time, pd.DataFrame()
     
     # Filter DataFrame by spatial results
     df_filtered = df.iloc[spatial_results].copy()
@@ -201,13 +207,16 @@ def query_rangetree_lsh(range_tree, data: np.ndarray, df: pd.DataFrame,
         df_filtered = filter_by_metadata(df_filtered, metadata_filters)
     
     if len(df_filtered) == 0:
-        return [], df_filtered, time.time() - start_time
+        return [], df_filtered, time.time() - start_time, df_filtered
+    
+    # Store spatial-only results for display
+    df_spatial_only = df_filtered.copy()
     
     # Phase 2: LSH similarity on filtered results
     lsh_index, minhash_dict, df_valid = create_lsh_index(df_filtered, text_attribute, num_perm, verbose=False)
     
     if len(df_valid) == 0:
-        return [], df_valid, time.time() - start_time
+        return [], df_valid, time.time() - start_time, df_spatial_only
     
     similar_results = query_similar(lsh_index, minhash_dict, df_valid, query_text, top_k, num_perm)
     
@@ -216,7 +225,7 @@ def query_rangetree_lsh(range_tree, data: np.ndarray, df: pd.DataFrame,
     result_df = df_valid.loc[result_indices].copy()
     
     total_time = time.time() - start_time
-    return result_indices, result_df, total_time
+    return result_indices, result_df, total_time, df_spatial_only
 
 
 def query_rtree_lsh(rtree, data: np.ndarray, df: pd.DataFrame,
@@ -225,7 +234,7 @@ def query_rtree_lsh(rtree, data: np.ndarray, df: pd.DataFrame,
                     query_text: str,
                     metadata_filters: Optional[Dict] = None,
                     top_k: int = 10,
-                    num_perm: int = 128) -> Tuple[List[int], pd.DataFrame, float]:
+                    num_perm: int = 128) -> Tuple[List[int], pd.DataFrame, float, pd.DataFrame]:
     """
     Combined query using R-Tree for spatial filtering and LSH for similarity.
     
@@ -241,7 +250,7 @@ def query_rtree_lsh(rtree, data: np.ndarray, df: pd.DataFrame,
         num_perm: Number of permutations for MinHash
         
     Returns:
-        Tuple of (result_indices, result_df, total_time)
+        Tuple of (result_indices, result_df, total_time, df_spatial_filtered)
     """
     import time
     start_time = time.time()
@@ -258,7 +267,7 @@ def query_rtree_lsh(rtree, data: np.ndarray, df: pd.DataFrame,
     spatial_results = rtree.range_query(ranges)
     
     if not spatial_results:
-        return [], pd.DataFrame(), time.time() - start_time
+        return [], pd.DataFrame(), time.time() - start_time, pd.DataFrame()
     
     # Filter DataFrame by spatial results
     df_filtered = df.iloc[spatial_results].copy()
@@ -268,13 +277,16 @@ def query_rtree_lsh(rtree, data: np.ndarray, df: pd.DataFrame,
         df_filtered = filter_by_metadata(df_filtered, metadata_filters)
     
     if len(df_filtered) == 0:
-        return [], df_filtered, time.time() - start_time
+        return [], df_filtered, time.time() - start_time, df_filtered
+    
+    # Store spatial-only results for display
+    df_spatial_only = df_filtered.copy()
     
     # Phase 2: LSH similarity on filtered results
     lsh_index, minhash_dict, df_valid = create_lsh_index(df_filtered, text_attribute, num_perm, verbose=False)
     
     if len(df_valid) == 0:
-        return [], df_valid, time.time() - start_time
+        return [], df_valid, time.time() - start_time, df_spatial_only
     
     similar_results = query_similar(lsh_index, minhash_dict, df_valid, query_text, top_k, num_perm)
     
@@ -283,4 +295,4 @@ def query_rtree_lsh(rtree, data: np.ndarray, df: pd.DataFrame,
     result_df = df_valid.loc[result_indices].copy()
     
     total_time = time.time() - start_time
-    return result_indices, result_df, total_time
+    return result_indices, result_df, total_time, df_spatial_only

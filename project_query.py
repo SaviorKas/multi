@@ -11,8 +11,33 @@ import time
 from combined_queries import (
     query_kdtree_lsh,
     query_rangetree_lsh,
-    query_rtree_lsh
+    query_rtree_lsh,
+    query_quadtree_lsh
 )
+
+
+def display_spatial_results(df_filtered, n_top, tree_name):
+    """Display first N movies found by spatial filtering."""
+    print(f"\n--- Spatial Filtering Results from {tree_name} ---")
+    print(f"Found {len(df_filtered)} movies matching spatial criteria")
+    print(f"\nFirst {n_top} movies:")
+    
+    for i, (idx, row) in enumerate(df_filtered.head(n_top).iterrows()):
+        # Handle release_date which might be a string or Timestamp
+        release_year = 'N/A'
+        if pd.notna(row['release_date']):
+            release_date_str = str(row['release_date'])
+            if len(release_date_str) >= 4:
+                release_year = release_date_str[:4]
+        
+        print(f"\n{i+1}. {row['title']} ({release_year})")
+        print(f"   Production Companies: {row['production_company_names']}")
+        print(f"   Genres: {row['genre_names']}")
+        print(f"   Runtime: {row['runtime']:.0f} min")
+        print(f"   Popularity: {row['popularity']:.2f}")
+        print(f"   Vote Average: {row['vote_average']:.2f}")
+        print(f"   Country: {row['origin_country']}")
+        print(f"   Language: {row['original_language']}")
 
 
 def run_project_query(trees: Dict, data: np.ndarray, df: pd.DataFrame,
@@ -87,12 +112,17 @@ def run_project_query(trees: Dict, data: np.ndarray, df: pd.DataFrame,
         print("Method 1: K-D Tree + LSH")
         print("-" * 80)
         try:
-            indices, result_df, query_time = query_kdtree_lsh(
+            indices, result_df, query_time, df_spatial = query_kdtree_lsh(
                 trees['kdtree'], data, df,
                 spatial_filters, text_attribute, query_text,
                 metadata_filters, top_k=n_top
             )
             
+            # Display spatial filtering results BEFORE LSH
+            if len(df_spatial) > 0:
+                display_spatial_results(df_spatial, min(5, n_top), "K-D Tree")
+            
+            print(f"\nNow applying LSH for text similarity...")
             print(f"Query time: {query_time:.4f}s")
             print(f"Results found: {len(result_df)}")
             
@@ -125,12 +155,17 @@ def run_project_query(trees: Dict, data: np.ndarray, df: pd.DataFrame,
         print("Method 2: Range Tree + LSH")
         print("-" * 80)
         try:
-            indices, result_df, query_time = query_rangetree_lsh(
+            indices, result_df, query_time, df_spatial = query_rangetree_lsh(
                 trees['range_tree'], data, df,
                 spatial_filters, text_attribute, query_text,
                 metadata_filters, top_k=n_top
             )
             
+            # Display spatial filtering results BEFORE LSH
+            if len(df_spatial) > 0:
+                display_spatial_results(df_spatial, min(5, n_top), "Range Tree")
+            
+            print(f"\nNow applying LSH for text similarity...")
             print(f"Query time: {query_time:.4f}s")
             print(f"Results found: {len(result_df)}")
             
@@ -158,12 +193,17 @@ def run_project_query(trees: Dict, data: np.ndarray, df: pd.DataFrame,
         print("Method 3: R-Tree + LSH")
         print("-" * 80)
         try:
-            indices, result_df, query_time = query_rtree_lsh(
+            indices, result_df, query_time, df_spatial = query_rtree_lsh(
                 trees['rtree'], data, df,
                 spatial_filters, text_attribute, query_text,
                 metadata_filters, top_k=n_top
             )
             
+            # Display spatial filtering results BEFORE LSH
+            if len(df_spatial) > 0:
+                display_spatial_results(df_spatial, min(5, n_top), "R-Tree")
+            
+            print(f"\nNow applying LSH for text similarity...")
             print(f"Query time: {query_time:.4f}s")
             print(f"Results found: {len(result_df)}")
             
@@ -185,13 +225,51 @@ def run_project_query(trees: Dict, data: np.ndarray, df: pd.DataFrame,
             print(f"  Error: {str(e)}")
             results['rtree'] = {'error': str(e)}
     
+    # Query with Quadtree + LSH
+    if 'quadtree' in trees:
+        print("\n" + "-" * 80)
+        print("Method 4: Quadtree + LSH")
+        print("-" * 80)
+        try:
+            indices, result_df, query_time, df_spatial = query_quadtree_lsh(
+                trees['quadtree'], data, df,
+                spatial_filters, text_attribute, query_text,
+                metadata_filters, top_k=n_top
+            )
+            
+            # Display spatial filtering results BEFORE LSH
+            if len(df_spatial) > 0:
+                display_spatial_results(df_spatial, min(5, n_top), "Quadtree")
+            
+            print(f"\nNow applying LSH for text similarity...")
+            print(f"Query time: {query_time:.4f}s")
+            print(f"Results found: {len(result_df)}")
+            
+            if len(result_df) > 0:
+                print(f"\nTop N={n_top} results:")
+                for i, (idx, row) in enumerate(result_df.iterrows(), 1):
+                    print(f"  {i}. {row['title']} - {row[text_attribute]}")
+            else:
+                print("  No results found with these filters")
+            
+            results['quadtree'] = {
+                'indices': indices,
+                'dataframe': result_df,
+                'time': query_time,
+                'count': len(result_df)
+            }
+            
+        except Exception as e:
+            print(f"  Error: {str(e)}")
+            results['quadtree'] = {'error': str(e)}
+    
     # Summary
     print("\n" + "=" * 80)
     print("  QUERY SUMMARY")
     print("=" * 80)
     print(f"\nParameter N = {n_top} (user-defined)")
     print("\nTree Performance:")
-    for tree_name in ['kdtree', 'range_tree', 'rtree']:
+    for tree_name in ['kdtree', 'range_tree', 'rtree', 'quadtree']:
         if tree_name in results and 'error' not in results[tree_name]:
             print(f"  {tree_name:12}: {results[tree_name]['count']:3d} results in {results[tree_name]['time']:.4f}s")
         elif tree_name in results:

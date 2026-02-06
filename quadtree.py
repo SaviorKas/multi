@@ -26,7 +26,7 @@ class QuadtreeNode:
         self.y_max = y_max
         self.capacity = capacity
         
-        self.points = []  # List of (x, y, index) tuples
+        self.points = []  # List of (x, y, index, full_data) tuples - now stores full 6D data
         self.is_divided = False
         
         # Children nodes (NW, NE, SW, SE)
@@ -65,29 +65,30 @@ class QuadtreeNode:
         # Clear points from this node
         self.points = []
     
-    def _insert_to_child(self, point: Tuple[float, float, int]) -> bool:
+    def _insert_to_child(self, point: Tuple) -> bool:
         """Insert a point into the appropriate child."""
-        x, y, idx = point
+        x, y, idx, full_data = point
         
         if self.nw.contains(x, y):
-            return self.nw.insert(x, y, idx)
+            return self.nw.insert(x, y, idx, full_data)
         elif self.ne.contains(x, y):
-            return self.ne.insert(x, y, idx)
+            return self.ne.insert(x, y, idx, full_data)
         elif self.sw.contains(x, y):
-            return self.sw.insert(x, y, idx)
+            return self.sw.insert(x, y, idx, full_data)
         elif self.se.contains(x, y):
-            return self.se.insert(x, y, idx)
+            return self.se.insert(x, y, idx, full_data)
         
         return False
     
-    def insert(self, x: float, y: float, index: int) -> bool:
+    def insert(self, x: float, y: float, index: int, full_data: Optional[np.ndarray] = None) -> bool:
         """
         Insert a point into the quadtree.
         
         Args:
-            x: X coordinate
-            y: Y coordinate
+            x: X coordinate (first dimension)
+            y: Y coordinate (second dimension)
             index: Original index in dataset
+            full_data: Full 6D data point (optional, for filtering other dimensions)
             
         Returns:
             True if insertion successful
@@ -98,7 +99,7 @@ class QuadtreeNode:
         
         # If node has capacity and is not divided, add point
         if not self.is_divided and len(self.points) < self.capacity:
-            self.points.append((x, y, index))
+            self.points.append((x, y, index, full_data))
             return True
         
         # If node is at capacity, subdivide
@@ -106,7 +107,7 @@ class QuadtreeNode:
             self.subdivide()
         
         # Insert into appropriate child
-        return self._insert_to_child((x, y, index))
+        return self._insert_to_child((x, y, index, full_data))
     
     def query_range(self, x_min: float, x_max: float, 
                    y_min: float, y_max: float) -> List[int]:
@@ -129,7 +130,7 @@ class QuadtreeNode:
             return results
         
         # Check points in this node
-        for x, y, idx in self.points:
+        for x, y, idx, full_data in self.points:
             if x_min <= x <= x_max and y_min <= y <= y_max:
                 results.append(idx)
         
@@ -183,13 +184,13 @@ class Quadtree:
         Build the Quadtree from a set of points.
         
         Args:
-            points: Array of shape (n_points, n_dimensions)
+            points: Array of shape (n_points, n_dimensions) - stores full 6D but indexes on 2D
             indices: Optional array of original indices
         """
         if indices is None:
             indices = np.arange(len(points))
         
-        # Extract 2D coordinates
+        # Extract 2D coordinates for spatial indexing (budget and revenue)
         x_coords = points[:, self.x_dim]
         y_coords = points[:, self.y_dim]
         
@@ -205,9 +206,10 @@ class Quadtree:
                                 y_min - y_padding, y_max + y_padding,
                                 self.capacity)
         
-        # Insert all points
+        # Insert all points with full 6D data
         for i, idx in enumerate(indices):
-            self.root.insert(x_coords[i], y_coords[i], idx)
+            full_data = points[i] if points.shape[1] > 2 else None
+            self.root.insert(x_coords[i], y_coords[i], idx, full_data)
             self.size += 1
     
     def query_range(self, x_range: Tuple[float, float], 
