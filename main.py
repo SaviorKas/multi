@@ -13,7 +13,7 @@ from utils import load_movies_dataset, preprocess_data
 from kdtree import KDTree
 from range_tree import SimpleRangeTree
 from rtree import SimpleRTree
-from project_query_FINAL import run_project_query
+from project_query import run_project_query
 
 
 # ========== USER CONFIGURABLE PARAMETERS ==========
@@ -67,11 +67,11 @@ def build_trees(data: np.ndarray, df: pd.DataFrame, dimensions: List[str]):
         kdtree.build(data)
         build_times['kdtree'] = time.time() - start
         trees['kdtree'] = kdtree
-        print(f"  ✅ Size: {kdtree.size:,} nodes")
-        print(f"  ✅ Depth: {kdtree.get_depth()}")
-        print(f"  ✅ Build time: {build_times['kdtree']:.3f}s")
+        print(f"  Size: {kdtree.size:,} nodes")
+        print(f"  Depth: {kdtree.get_depth()}")
+        print(f"  Build time: {build_times['kdtree']:.3f}s")
     except Exception as e:
-        print(f"  ❌ Error: {str(e)[:100]}")
+        print(f"  Error: {str(e)[:100]}")
     
     # Range Tree
     print("\nBuilding Range Tree...")
@@ -81,10 +81,10 @@ def build_trees(data: np.ndarray, df: pd.DataFrame, dimensions: List[str]):
         range_tree.build(data)
         build_times['range_tree'] = time.time() - start
         trees['range_tree'] = range_tree
-        print(f"  ✅ Size: {range_tree.size:,} nodes")
-        print(f"  ✅ Build time: {build_times['range_tree']:.3f}s")
+        print(f"  Size: {range_tree.size:,} nodes")
+        print(f"  Build time: {build_times['range_tree']:.3f}s")
     except Exception as e:
-        print(f"  ❌ Error: {str(e)[:100]}")
+        print(f"  Error: {str(e)[:100]}")
     
     # R-Tree
     print("\nBuilding R-Tree...")
@@ -94,18 +94,18 @@ def build_trees(data: np.ndarray, df: pd.DataFrame, dimensions: List[str]):
         rtree.build(data)
         build_times['rtree'] = time.time() - start
         trees['rtree'] = rtree
-        print(f"  ✅ Size: {rtree.size:,} nodes")
-        print(f"  ✅ Build time: {build_times['rtree']:.3f}s")
+        print(f"  Size: {rtree.size:,} nodes")
+        print(f"  Build time: {build_times['rtree']:.3f}s")
     except Exception as e:
-        print(f"  ❌ Error: {str(e)[:100]}")
+        print(f"  Error: {str(e)[:100]}")
     
     # Note about Quadtree
-    print("\n⚠️  Quadtree skipped: Not suitable for 946K point dataset (causes infinite recursion)")
+    print("\nQuadtree skipped: Not suitable for 946K point dataset (causes infinite recursion)")
     
     if not trees:
         raise RuntimeError("Failed to build any tree structures!")
     
-    print(f"\n✅ Successfully built {len(trees)} tree structure(s)")
+    print(f"\nSuccessfully built {len(trees)} tree structure(s)")
     
     return trees, build_times
 
@@ -120,9 +120,9 @@ def demonstrate_basic_queries(trees: Dict, data: np.ndarray,
         print("K-D Tree: Sample range query")
         query_ranges = [(0, data[:, i].max() * 0.5) for i in range(len(dimensions))]
         result_indices = trees['kdtree'].range_query(query_ranges)
-        print(f"  ✅ Found {len(result_indices)} movies in range\n")
+        print(f"  Found {len(result_indices)} movies in range\n")
     
-    print("✅ Basic tree queries working correctly\n")
+    print("Basic tree queries working correctly\n")
 
 
 def main():
@@ -137,32 +137,32 @@ def main():
     print("\n" + "=" * 80)
     print("  USER CONFIGURATION")
     print("=" * 80)
-    print(f"📊 N (Top results): {N_TOP_RESULTS}")
-    print(f"🔍 Query text: '{QUERY_TEXT}'")
-    print(f"🎯 Search attribute: {TEXT_ATTRIBUTE}")
-    print(f"⚙️  Filter mode: {'STRICT (original spec)' if USE_STRICT_FILTERS else 'RELAXED (realistic)'}")
+    print(f"N (Top results): {N_TOP_RESULTS}")
+    print(f"Query text: '{QUERY_TEXT}'")
+    print(f"Search attribute: {TEXT_ATTRIBUTE}")
+    print(f"Filter mode: {'STRICT (original spec)' if USE_STRICT_FILTERS else 'RELAXED (realistic)'}")
     print("=" * 80)
     
     # Load and preprocess data
     print_section("Loading and Preprocessing Data")
     try:
         df = load_movies_dataset()
-        print(f"✅ Loaded {len(df):,} movies from dataset")
+        print(f"Loaded {len(df):,} movies from dataset")
     except Exception as e:
-        print(f"❌ Error loading dataset: {e}")
-        print("\n⚠️  Make sure 'data_movies_clean.csv' is in the same folder as this script!")
+        print(f"Error loading dataset: {e}")
+        print("\nMake sure 'data_movies_clean.csv' is in the same folder as this script!")
         sys.exit(1)
     
     data, df_clean = preprocess_data(df)
     dimensions = ['budget', 'revenue', 'runtime', 'popularity', 'vote_average', 'vote_count']
-    print(f"✅ Preprocessed {len(df_clean):,} valid movies")
-    print(f"✅ Dimensions used: {dimensions}")
+    print(f"Preprocessed {len(df_clean):,} valid movies")
+    print(f"Dimensions used: {dimensions}")
     
     # Build trees
     try:
         trees, build_times = build_trees(data, df_clean, dimensions)
     except Exception as e:
-        print(f"❌ Critical error building trees: {e}")
+        print(f"Critical error building trees: {e}")
         sys.exit(1)
     
     # Quick functionality check
@@ -182,21 +182,21 @@ def main():
             use_strict_filters=USE_STRICT_FILTERS
         )
     except Exception as e:
-        print(f"❌ Error running project query: {e}")
+        print(f"Error running project query: {e}")
         import traceback
         traceback.print_exc()
     
     # Final summary
     print_section("Program Complete")
-    print("✅ All tree structures and queries executed successfully!")
-    print("\n📊 Tree build times summary:")
+    print("All tree structures and queries executed successfully!")
+    print("\nTree build times summary:")
     for tree_name, build_time in build_times.items():
         print(f"  {tree_name:12}: {build_time:.3f}s")
     
     print("\n" + "=" * 80)
     print("  TO CHANGE SETTINGS:")
     print("=" * 80)
-    print("Edit these variables at the top of main_FINAL.py:")
+    print("Edit these variables at the top of main.py:")
     print(f"  - N_TOP_RESULTS = {N_TOP_RESULTS}  (change to 3, 10, 20, etc.)")
     print(f"  - QUERY_TEXT = '{QUERY_TEXT}'")
     print(f"  - TEXT_ATTRIBUTE = '{TEXT_ATTRIBUTE}'")
