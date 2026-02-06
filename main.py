@@ -99,8 +99,19 @@ def build_trees(data: np.ndarray, df: pd.DataFrame, dimensions: List[str]):
     except Exception as e:
         print(f"  Error: {str(e)[:100]}")
     
-    # Note about Quadtree
-    print("\nQuadtree skipped: Not suitable for 946K point dataset (causes infinite recursion)")
+    # Quadtree (2D projection)
+    print("\nBuilding Quadtree (using first 2 dimensions)...")
+    try:
+        start = time.time()
+        from quadtree import Quadtree
+        quadtree = Quadtree()
+        quadtree.build(data)
+        build_times['quadtree'] = time.time() - start
+        trees['quadtree'] = quadtree
+        print(f"  Size: {quadtree.size:,} nodes")
+        print(f"  Build time: {build_times['quadtree']:.3f}s")
+    except Exception as e:
+        print(f"  Error: {str(e)[:100]}")
     
     if not trees:
         raise RuntimeError("Failed to build any tree structures!")
