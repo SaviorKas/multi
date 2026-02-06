@@ -151,14 +151,12 @@ def main():
     print(f"N (Top results): {N_TOP_RESULTS}")
     print(f"Query text: '{QUERY_TEXT}'")
     print(f"Search attribute: {TEXT_ATTRIBUTE}")
-    print(f"Filter mode: {'STRICT (original spec)' if USE_STRICT_FILTERS else 'RELAXED (realistic)'}")
     print("=" * 80)
     
     # Load and preprocess data
     print_section("Loading and Preprocessing Data")
     try:
         df = load_movies_dataset()
-        print(f"Loaded {len(df):,} movies from dataset")
     except Exception as e:
         print(f"Error loading dataset: {e}")
         print("\nMake sure 'data_movies_clean.csv' is in the same folder as this script!")
@@ -166,8 +164,6 @@ def main():
     
     data, df_clean = preprocess_data(df)
     dimensions = ['budget', 'revenue', 'runtime', 'popularity', 'vote_average', 'vote_count']
-    print(f"Preprocessed {len(df_clean):,} valid movies")
-    print(f"Dimensions used: {dimensions}")
     
     # Build trees
     try:
@@ -203,16 +199,6 @@ def main():
     print("\nTree build times summary:")
     for tree_name, build_time in build_times.items():
         print(f"  {tree_name:12}: {build_time:.3f}s")
-    
-    print("\n" + "=" * 80)
-    print("  TO CHANGE SETTINGS:")
-    print("=" * 80)
-    print("Edit these variables at the top of main.py:")
-    print(f"  - N_TOP_RESULTS = {N_TOP_RESULTS}  (change to 3, 10, 20, etc.)")
-    print(f"  - QUERY_TEXT = '{QUERY_TEXT}'")
-    print(f"  - TEXT_ATTRIBUTE = '{TEXT_ATTRIBUTE}'")
-    print(f"  - USE_STRICT_FILTERS = {USE_STRICT_FILTERS}")
-    print("=" * 80 + "\n")
 
 
 if __name__ == "__main__":

@@ -20,7 +20,7 @@ def load_movies_dataset(filepath: str = "data_movies_clean.csv") -> pd.DataFrame
     try:
         df = pd.read_csv(filepath)
                     
-        print(f"Loaded {len(df)} movies from {filepath}")
+        print(f"Loaded {len(df):,} movies from {filepath}")
         return df
     except Exception as e:
         print(f"Error loading dataset: {e}")
@@ -60,7 +60,7 @@ def preprocess_data(df: pd.DataFrame,
     # Extract numerical data as numpy array
     data_array = df_clean[dimensions].values.astype(np.float64)
     
-    print(f"Preprocessed {len(df_clean)} valid movies")
+    print(f"Preprocessed {len(df_clean):,} valid movies")
     print(f"Dimensions used: {dimensions}")
     
     return data_array, df_clean
