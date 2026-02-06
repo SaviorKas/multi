@@ -38,8 +38,8 @@ def run_project_query(trees: Dict, data: np.ndarray, df: pd.DataFrame,
     print("\n" + "=" * 80)
     print("  PROJECT SPECIFIC QUERY")
     print("=" * 80)
-    print(f"\n🔍 Query: Find N={n_top} most similar {text_attribute} to '{query_text}'")
-    print("\n📋 Filters:")
+    print(f"\nQuery: Find N={n_top} most similar {text_attribute} to '{query_text}'")
+    print("\nFilters:")
     print("  - Release date: 2000-2020")
     
     if use_strict_filters:
@@ -48,7 +48,7 @@ def run_project_query(trees: Dict, data: np.ndarray, df: pd.DataFrame,
         print("  - Runtime: 30-60 minutes (STRICT)")
         print("  - Origin country: US or GB (STRICT)")
         print("  - Original language: en")
-        print("\n  ⚠️  WARNING: Strict filters may return 0 results!")
+        print("\n  WARNING: Strict filters may return 0 results!")
         
         spatial_filters = {
             'popularity': (3, 6),
@@ -93,20 +93,20 @@ def run_project_query(trees: Dict, data: np.ndarray, df: pd.DataFrame,
                 metadata_filters, top_k=n_top
             )
             
-            print(f"⏱️  Query time: {query_time:.4f}s")
-            print(f"📊 Results found: {len(result_df)}")
+            print(f"Query time: {query_time:.4f}s")
+            print(f"Results found: {len(result_df)}")
             
             if len(result_df) > 0:
-                print(f"\n🎬 Top N={n_top} results:")
+                print(f"\nTop N={n_top} results:")
                 for i, (idx, row) in enumerate(result_df.iterrows(), 1):
                     print(f"\n  {i}. {row['title']}")
-                    print(f"     🏢 {text_attribute}: {row[text_attribute]}")
-                    print(f"     📅 Release: {row['release_date']}")
-                    print(f"     ⭐ Rating: {row['vote_average']:.1f}")
-                    print(f"     ⏱️  Runtime: {row['runtime']:.0f} min")
-                    print(f"     📈 Popularity: {row['popularity']:.1f}")
+                    print(f"     {text_attribute}: {row[text_attribute]}")
+                    print(f"     Release: {row['release_date']}")
+                    print(f"     Rating: {row['vote_average']:.1f}")
+                    print(f"     Runtime: {row['runtime']:.0f} min")
+                    print(f"     Popularity: {row['popularity']:.1f}")
             else:
-                print("  ❌ No results found with these filters")
+                print("  No results found with these filters")
             
             results['kdtree'] = {
                 'indices': indices,
@@ -116,7 +116,7 @@ def run_project_query(trees: Dict, data: np.ndarray, df: pd.DataFrame,
             }
             
         except Exception as e:
-            print(f"  ❌ Error: {str(e)}")
+            print(f"  Error: {str(e)}")
             results['kdtree'] = {'error': str(e)}
     
     # Query with Range Tree + LSH
@@ -131,15 +131,15 @@ def run_project_query(trees: Dict, data: np.ndarray, df: pd.DataFrame,
                 metadata_filters, top_k=n_top
             )
             
-            print(f"⏱️  Query time: {query_time:.4f}s")
-            print(f"📊 Results found: {len(result_df)}")
+            print(f"Query time: {query_time:.4f}s")
+            print(f"Results found: {len(result_df)}")
             
             if len(result_df) > 0:
-                print(f"\n🎬 Top N={n_top} results:")
+                print(f"\nTop N={n_top} results:")
                 for i, (idx, row) in enumerate(result_df.iterrows(), 1):
                     print(f"  {i}. {row['title']} - {row[text_attribute]}")
             else:
-                print("  ❌ No results found with these filters")
+                print("  No results found with these filters")
             
             results['range_tree'] = {
                 'indices': indices,
@@ -149,7 +149,7 @@ def run_project_query(trees: Dict, data: np.ndarray, df: pd.DataFrame,
             }
             
         except Exception as e:
-            print(f"  ❌ Error: {str(e)}")
+            print(f"  Error: {str(e)}")
             results['range_tree'] = {'error': str(e)}
     
     # Query with R-Tree + LSH
@@ -164,15 +164,15 @@ def run_project_query(trees: Dict, data: np.ndarray, df: pd.DataFrame,
                 metadata_filters, top_k=n_top
             )
             
-            print(f"⏱️  Query time: {query_time:.4f}s")
-            print(f"📊 Results found: {len(result_df)}")
+            print(f"Query time: {query_time:.4f}s")
+            print(f"Results found: {len(result_df)}")
             
             if len(result_df) > 0:
-                print(f"\n🎬 Top N={n_top} results:")
+                print(f"\nTop N={n_top} results:")
                 for i, (idx, row) in enumerate(result_df.iterrows(), 1):
                     print(f"  {i}. {row['title']} - {row[text_attribute]}")
             else:
-                print("  ❌ No results found with these filters")
+                print("  No results found with these filters")
             
             results['rtree'] = {
                 'indices': indices,
@@ -182,21 +182,21 @@ def run_project_query(trees: Dict, data: np.ndarray, df: pd.DataFrame,
             }
             
         except Exception as e:
-            print(f"  ❌ Error: {str(e)}")
+            print(f"  Error: {str(e)}")
             results['rtree'] = {'error': str(e)}
     
     # Summary
     print("\n" + "=" * 80)
     print("  QUERY SUMMARY")
     print("=" * 80)
-    print(f"\n📊 Parameter N = {n_top} (user-defined)")
-    print("\n🌲 Tree Performance:")
+    print(f"\nParameter N = {n_top} (user-defined)")
+    print("\nTree Performance:")
     for tree_name in ['kdtree', 'range_tree', 'rtree']:
         if tree_name in results and 'error' not in results[tree_name]:
             print(f"  {tree_name:12}: {results[tree_name]['count']:3d} results in {results[tree_name]['time']:.4f}s")
         elif tree_name in results:
-            print(f"  {tree_name:12}: ❌ Error")
+            print(f"  {tree_name:12}: Error")
         else:
-            print(f"  {tree_name:12}: ⏭️  Skipped")
+            print(f"  {tree_name:12}: Skipped")
     
     return results
